@@ -1,0 +1,122 @@
+     <right>
+                <VBox alignment="CENTER_RIGHT">
+                    <Label text="A/B Category" style="-fx-font-size: 10px; -fx-text-fill: #999;" />
+                    <Label fx:id="abCategoryLabel" text="N/A" style="-fx-font-weight: bold; -fx-font-size: 24px;" />
+                </VBox>
+            </right>
+        </BorderPane>
+        <Separator/>
+
+        <!-- KÖZÉPSŐ SZEKCIÓ: SGX és Előző Adatok -->
+        <TitledPane animated="false" text="SGx A/B Confirmation">
+            <content>
+                <GridPane hgap="20.0">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="200.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="300.0" />
+                    </columnConstraints>
+                    <children>
+                        <!-- Bal oldal: Jelenlegi választás -->
+                        <VBox spacing="10.0" GridPane.columnIndex="0">
+                             <padding><Insets top="10" bottom="10" left="5" right="5"/></padding>
+                             <children>
+                                <Label text="Current A/B Confirmation:" style="-fx-font-weight: bold;" />
+                                <ComboBox fx:id="currentABConfirmationComboBox" prefWidth="200.0" />
+                             </children>
+                        </VBox>
+                        <!-- Jobb oldal: Előző adatok (csak ha léteznek) -->
+                        <VBox fx:id="lastDataPane" managed="false" spacing="5.0" visible="false" GridPane.columnIndex="1">
+                            <padding><Insets top="10" bottom="10" left="5" right="5"/></padding>
+                            <children>
+                                <Label text="Last Data:" style="-fx-font-weight: bold;" />
+                                <HBox spacing="5.0"><Label text="Last A/B Confirmation:"/><Label fx:id="lastABConfirmationLabel" text="-"/></HBox>
+                                <HBox spacing="5.0"><Label text="Last PDT Status:"/><Label fx:id="lastPDTStatusLabel" text="-"/></HBox>
+                            </children>
+                        </VBox>
+                    </children>
+                </GridPane>
+            </content>
+        </TitledPane>
+
+
+package hu.bmw.pdt.backend.controller;
+
+import hu.bmw.pdt.model.Employee;
+import javafx.collections.FXCollections;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import org.springframework.stereotype.Component;
+
+@Component
+public class EditEmployeeDialogController {
+
+    // FXML mezők
+    @FXML private Label employeeNameLabel, positionTitleLabel, abCategoryLabel;
+    @FXML private ComboBox<String> currentABConfirmationComboBox;
+    @FXML private VBox lastDataPane; // A panel, amit elrejtünk/megjelenítünk
+    @FXML private Label lastABConfirmationLabel, lastPDTStatusLabel;
+    @FXML private ComboBox<String> currentPDTStatusComboBox;
+    @FXML private TextArea currentPDTCommentArea;
+    // ...többi FXML mező...
+
+    private Employee currentEmployee;
+    private boolean confirmed = false;
+
+    @FXML
+    private void initialize() {
+        // ComboBox-ok feltöltése opciókkal
+        currentABConfirmationComboBox.setItems(FXCollections.observableArrayList("", "Yes", "No"));
+        currentPDTStatusComboBox.setItems(FXCollections.observableArrayList("", "Status 1", "Status 2", "Status 3"));
+    }
+
+    public void initData(Employee employee) {
+        this.currentEmployee = employee;
+
+        // Fejléc adatainak feltöltése
+        employeeNameLabel.setText(employee.getDisplayName());
+        positionTitleLabel.setText(employee.getPositionTitle());
+        abCategoryLabel.setText(employee.getAbCategory() != null ? employee.getAbCategory() : "N/A");
+
+        // Jelenlegi (szerkeszthető) adatok betöltése
+        currentABConfirmationComboBox.setValue(employee.getCurrentABConfirmation());
+        currentPDTStatusComboBox.setValue(employee.getCurrentPDTStatus());
+        currentPDTCommentArea.setText(employee.getCurrentPDTComment());
+        // ...többi jelenlegi adat betöltése...
+
+        // Előző (Last) adatok dinamikus megjelenítése
+        boolean hasLastData = (employee.getLastABConfirmation() != null && !employee.getLastABConfirmation().isEmpty()) ||
+                              (employee.getLastPDTStatus() != null && !employee.getLastPDTStatus().isEmpty());
+
+        lastDataPane.setVisible(hasLastData);
+        lastDataPane.setManaged(hasLastData);
+
+        if (hasLastData) {
+            lastABConfirmationLabel.setText(employee.getLastABConfirmation());
+            lastPDTStatusLabel.setText(employee.getLastPDTStatus());
+        }
+    }
+
+    @FXML
+    private void handleSave() {
+        // Adatok frissítése az Employee objektumon
+        currentEmployee.setCurrentABConfirmation(currentABConfirmationComboBox.getValue());
+        currentEmployee.setCurrentPDTStatus(currentPDTStatusComboBox.getValue());
+        currentEmployee.setCurrentPDTComment(currentPDTCommentArea.getText());
+        // ...többi adat mentése...
+        
+        // A "discussed" állapot beállítása
+        boolean isConfirmed = currentABConfirmationComboBox.getValue() != null && !currentABConfirmationComboBox.getValue().isEmpty();
+        boolean isPdtSelected = currentPDTStatusComboBox.getValue() != null && !currentPDTStatusComboBox.getValue().isEmpty();
+        currentEmployee.setDiscussed(isConfirmed || isPdtSelected);
+
+        confirmed = true;
+        closeDialog();
+    }
+
+    @FXML
+    private void handleCancel() { closeDialog(); }
+    private void closeDialog() { ((Stage) employeeNameLabel.getScene().getWindow()).close(); }
+    public boolean isConfirmed() { return confirmed; }
+}
