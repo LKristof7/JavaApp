@@ -1,57 +1,211 @@
-/* --- VILÁGOS TÉMA --- */
+/* ========================================================================== */
+/* Fájl: src/main/resources/css/main-style.css (SÖTÉT TÉMA)                   */
+/* ========================================================================== */
+
 .root {
-    -fx-font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    -fx-base: #e0e0e0; /* Világosszürke alap */
-    -fx-background: #f4f4f4; /* Majdnem fehér háttér */
-    -fx-control-inner-background: white;
-    -fx-text-background-color: #333333; /* Sötét, olvasható szövegszín */
-    -fx-accent: #0078d7; /* Kiemelő kék szín */
+    -fx-font-family: "Segoe UI", system-ui, sans-serif;
+    -fx-base: #3c3f41;                      /* Sötétszürke alap a vezérlőkhöz */
+    -fx-background: #2b2d30;                /* Nagyon sötét háttér */
+    -fx-control-inner-background: #313335;  /* Beviteli mezők háttere */
+    -fx-text-base-color: #dcdcdc;           /* FŐ SZÖVEGSZÍN: Világosszürke, jó kontraszt */
+    -fx-accent: #0078d4;                    /* A te kék színed, kicsit élénkítve */
 }
 
-/* --- MENÜSÁV --- */
+/* --- MENÜSÁV (A TE STÍLUSOD MEGTARTVA ÉS FINOMÍTVA) --- */
 .menu-bar {
-    -fx-background-color: -fx-background;
-    -fx-border-width: 0 0 1 0;
-    -fx-border-color: #d0d0d0;
+    -fx-background-color: #0078d4; /* A te kék színed */
+    -fx-padding: 5px;
 }
-.menu-bar .label { -fx-text-fill: -fx-text-background-color; }
-.menu:hover, .menu:showing { -fx-background-color: #d8d8d8; }
-.context-menu { -fx-background-color: #f4f4f4; }
+.menu-bar .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+.menu:hover, .menu:showing {
+    -fx-background-color: #005a9e; /* Sötétebb kék hover */
+    -fx-background-radius: 4;
+}
+.menu-item:focused { -fx-background-color: -fx-accent; }
+.menu-item:focused .label { -fx-text-fill: white; }
+.context-menu { -fx-background-color: -fx-base; }
+
+/* --- ÁLTALÁNOS VEZÉRLŐK (AtlantaFX stílus) --- */
+.text-field, .text-area, .combo-box, .date-picker {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4;
+    -fx-border-color: #555;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+    -fx-font-size: 14px;
+    -fx-prompt-text-fill: #8c8c8c;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.text-field:focused, .text-area:focused, .combo-box:focused, .date-picker:focused {
+    -fx-border-color: -fx-accent;
+    -fx-border-width: 2;
+    -fx-background-insets: -1;
+}
+
+/* --- DATE PICKER --- */
+.date-picker > .arrow-button { -fx-background-color: transparent; }
+.date-picker > .arrow-button > .arrow { -fx-background-color: -fx-text-base-color; }
+.date-picker .date-picker-popup { -fx-border-color: -fx-accent; }
+
+/* --- CHECKBOX & RADIOBUTTON --- */
+.check-box .box, .radio-button .radio {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: #555;
+    -fx-border-radius: 3;
+}
+.check-box:selected .mark, .radio-button:selected .dot {
+    -fx-background-color: -fx-accent;
+}
+.check-box:focused .box, .radio-button:focused .radio {
+    -fx-border-color: -fx-accent;
+}
 
 /* --- GOMBOK --- */
 .button {
     -fx-background-color: -fx-accent;
     -fx-text-fill: white;
     -fx-font-weight: bold;
-    -fx-background-radius: 5;
+    -fx-background-radius: 4;
     -fx-padding: 8 15 8 15;
+    -fx-cursor: hand;
 }
-.toggle-button {
-    -fx-background-color: #e8e8e8;
-    -fx-text-fill: -fx-text-background-color;
-    -fx-border-color: #c0c0c0;
-}
-.toggle-button:selected {
-    -fx-background-color: -fx-accent;
-    -fx-text-fill: white;
-}
-
-/* --- BEVITELI MEZŐK --- */
-.text-field, .combo-box, .date-picker {
-    -fx-border-color: #c0c0c0;
-    -fx-border-radius: 5;
-}
-.text-field:focused, .combo-box:focused, .date-picker:focused {
-    -fx-border-color: -fx-accent;
-    -fx-border-width: 2px;
-}
+.button:hover { -fx-background-color: derive(-fx-accent, 20%); }
+.button:pressed { -fx-background-color: derive(-fx-accent, -10%); }
 
 /* --- TÁBLÁZAT --- */
-.table-view { -fx-border-color: #d0d0d0; }
-.table-view .column-header-background { -fx-background-color: transparent; }
-.table-view .column-header, .table-view .filler {
-    -fx-border-width: 0 0 2 0;
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #444;
+    -fx-border-radius: 4;
+}
+.table-view .column-header .label {
+    -fx-text-fill: #dcdcdc;
+    -fx-font-weight: bold;
+}
+.table-view .table-cell {
+    -fx-text-fill: #cccccc;
+    -fx-padding: 10px;
+}
+.table-view .table-row-cell:selected { -fx-background-color: #005c9e; }
+.discussed-row .table-cell { -fx-background-color: #2a4f3c; }
+.discussed-row:selected .table-cell { -fx-background-color: #3a6f4c; }
+
+/* --- A TE EGYEDI STÍLUSAID --- */
+.titleLabel {
+    -fx-font-weight: bold;
+    -fx-font-size: 24px;
+}
+.dashboardBox {
+    -fx-background-color: -fx-base;
+    -fx-padding: 10px;
+    -fx-border-width: 0;
+    -fx-alignment: CENTER;
+    -fx-background-radius: 10;
+}
+
+
+/* ========================================================================== */
+/* Fájl: src/main/resources/css/light-theme.css (VILÁGOS TÉMA)                */
+/* ========================================================================== */
+
+.root {
+    -fx-font-family: "Segoe UI", system-ui, sans-serif;
+    -fx-base: #e0e0e0;
+    -fx-background: #f4f4f4;
+    -fx-control-inner-background: white;
+    -fx-text-base-color: #212121;
+    -fx-accent: #0078d4; /* A te kék színed */
+}
+
+/* --- MENÜSÁV (A TE STÍLUSOD MEGTARTVA ÉS FINOMÍTVA) --- */
+.menu-bar {
+    -fx-background-color: #0078d4; /* A te kék színed */
+    -fx-padding: 5px;
+}
+.menu-bar .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+.menu:hover, .menu:showing {
+    -fx-background-color: #005a9e; /* Sötétebb kék hover */
+    -fx-background-radius: 4;
+}
+.context-menu { -fx-background-color: #f4f4f4; }
+
+/* --- ÁLTALÁNOS VEZÉRLŐK (AtlantaFX stílus) --- */
+.text-field, .text-area, .combo-box, .date-picker {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4;
+    -fx-border-color: #c0c0c0;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+    -fx-font-size: 14px;
+    -fx-prompt-text-fill: #a0a0a0;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.text-field:focused, .text-area:focused, .combo-box:focused, .date-picker:focused {
+    -fx-border-color: -fx-accent;
+    -fx-border-width: 2;
+    -fx-background-insets: -1;
+}
+
+/* --- DATE PICKER --- */
+.date-picker > .arrow-button { -fx-background-color: transparent; }
+.date-picker > .arrow-button > .arrow { -fx-background-color: -fx-text-base-color; }
+.date-picker .date-picker-popup { -fx-border-color: -fx-accent; }
+
+/* --- CHECKBOX & RADIOBUTTON --- */
+.check-box .box, .radio-button .radio {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: #c0c0c0;
+    -fx-border-radius: 3;
+}
+.check-box:selected .mark, .radio-button:selected .dot {
+    -fx-background-color: -fx-accent;
+}
+.check-box:focused .box, .radio-button:focused .radio {
     -fx-border-color: -fx-accent;
 }
-.table-view .column-header .label { -fx-text-fill: -fx-text-background-color; }
+
+/* --- GOMBOK --- */
+.button {
+    -fx-background-color: -fx-accent;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4;
+    -fx-padding: 8 15 8 15;
+}
+.button:hover { -fx-background-color: derive(-fx-accent, 20%); }
+.button:pressed { -fx-background-color: derive(-fx-accent, -10%); }
+
+/* --- TÁBLÁZAT --- */
+.table-view { -fx-border-color: #d0d0d0; -fx-border-radius: 4;}
+.table-view .column-header .label {
+    -fx-text-fill: #212121;
+    -fx-font-weight: bold;
+}
+.table-view .table-cell { -fx-text-fill: #333333; }
+.table-view .table-row-cell:selected { -fx-background-color: #b0d9f8; }
 .discussed-row .table-cell { -fx-background-color: #d8f5e5; }
+.discussed-row:selected .table-cell { -fx-background-color: #b8e5c5; }
+
+/* --- A TE EGYEDI STÍLUSAID --- */
+.titleLabel {
+    -fx-font-weight: bold;
+    -fx-font-size: 24px;
+}
+.dashboardBox {
+    -fx-background-color: -fx-base;
+    -fx-padding: 10px;
+    -fx-border-width: 0;
+    -fx-alignment: CENTER;
+    -fx-background-radius: 10;
+}
+
