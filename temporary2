@@ -1,86 +1,42 @@
-public Optional<List<Employee>> showAddEmployeesDialog(Node ownerNode, TalkSession session) {
-        try {
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/fxml/add-employee-dialog.fxml"));
-            fxmlLoader.setControllerFactory(applicationContext::getBean);
-            Scene scene = new Scene(fxmlLoader.load());
-            AddEmployeeDialogController controller = fxmlLoader.getController();
-            
-            // Átadjuk az aktuális session-t, hogy a controller tudja, kiket kell kihagyni a listából.
-            controller.initData(session);
+<TitledPane fx:id="sgxTitledPane" animated="false" text="SGxA->B Ready?">
+                    <content>
+                        <GridPane hgap="20.0">
+                            <columnConstraints>
+                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="250.0" />
+                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="300.0" />
+                            </columnConstraints>
+                            <children>
+                                <VBox spacing="10.0" GridPane.columnIndex="0">
+                                    <padding><Insets top="10" bottom="10" left="5" right="5" /></padding>
+                                    <children>
+                                        <Label text="Status" />
+                                        <HBox alignment="CENTER_LEFT" spacing="20.0">
+                                            <children>
+                                                <RadioButton fx:id="sgxbReadyRadio" text="Ready" />
+                                                <RadioButton fx:id="sgxbNotReadyRadio" text="Not Ready" />
+                                                <RadioButton fx:id="sgxbNA" text="N/A" />
 
-            themeManager.applyTheme(scene);
-
-            Stage dialogStage = new Stage();
-            dialogStage.setTitle("Új Tagok Hozzáadása");
-            dialogStage.initModality(Modality.WINDOW_MODAL);
-            dialogStage.initOwner(ownerNode.getScene().getWindow());
-            dialogStage.setScene(scene);
-            dialogStage.showAndWait();
-
-            if (controller.isConfirmed()) {
-                return Optional.ofNullable(controller.getSelectedEmployees());
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            // Itt lehetne egy hibaüzenetet is megjeleníteni
-        }
-        return Optional.empty();
-    }
-
- <bottom>
-        <!-- EZ AZ ÚJ SZEKCIÓ A GOMBOKKAL -->
-        <HBox alignment="CENTER_RIGHT" spacing="10.0" BorderPane.alignment="CENTER">
-            <padding>
-                <Insets top="10.0" />
-            </padding>
-            <children>
-                <Button onAction="#handleAddEmployees" text="+ Tag Hozzáadása" />
-                <Button onAction="#handleRemoveEmployees" text="- Tag Eltávolítása" />
-            </children>
-        </HBox>
-    </bottom>
-
-
- /**
-     * A "+ Tag Hozzáadása" gomb logikája.
-     */
-    @FXML
-    private void handleAddEmployees() {
-        dialogFactory.showAddEmployeesDialog(employeeTable, currentSession).ifPresent(selectedEmployees -> {
-            if (!selectedEmployees.isEmpty()) {
-                talkSessionService.addEmployeesToSession(currentSession, selectedEmployees);
-                refreshTable(); // Frissítjük a táblázatot az új tagokkal
-            }
-        });
-    }
-
-    /**
-     * A "- Tag Eltávolítása" gomb logikája.
-     */
-    @FXML
-    private void handleRemoveEmployees() {
-        List<Employee> selectedEmployees = employeeTable.getSelectionModel().getSelectedItems();
-        if (selectedEmployees == null || selectedEmployees.isEmpty()) {
-            // Itt lehetne egy hibaüzenetet feldobni
-            return;
-        }
-
-        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmation.setTitle("Megerősítés");
-        confirmation.setHeaderText("Biztosan eltávolítod a kiválasztott " + selectedEmployees.size() + " dolgozót a session-ből?");
-        confirmation.setContentText("Ez a művelet nem vonható vissza.");
-
-        Optional<ButtonType> result = confirmation.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            talkSessionService.removeEmployeesFromSession(currentSession, selectedEmployees);
-            refreshTable(); // Frissítjük a táblázatot
-        }
-    }
-
-    /**
-     * Egy új metódus, ami frissíti a táblázat tartalmát.
-     */
-    private void refreshTable() {
-        employeeObservableList.setAll(currentSession.getEmployees());
-    }
+                                            </children>
+                                        </HBox>
+                                        <TextArea fx:id="notReadyCommentArea" managed="false" promptText="Justification (if 'Not Ready')..." visible="false" />
+                                    </children>
+                                </VBox>
+                                <VBox fx:id="lastDataPane" managed="false" spacing="5.0" visible="false" GridPane.columnIndex="1">
+                                    <padding><Insets top="10" bottom="10" left="5" right="5" /></padding>
+                                    <children>
+                                        <Label text="Last Data:" style="-fx-font-weight: bold;" />
+                                        <HBox spacing="5.0"><Label text="Last A/B Confirmation:" /><Label fx:id="lastABConfirmationLabel" text="-" /></HBox>
+                                        <HBox spacing="5.0"><Label text="Last PDT Status:" /><Label fx:id="lastPDTStatusLabel" text="-" /></HBox>
+                                    </children>
+                                </VBox>
+                                <VBox spacing="5.0">
+                                    <Label fx:id="sgxSuggestionLabel" managed="false" style="-fx-text-fill: #4CAF50; -fx-font-weight: bold;" visible="false">
+                                        <VBox.margin>
+                                            <Insets top="5.0" />
+                                        </VBox.margin>
+                                    </Label>
+                                </VBox>
+                            </children>
+                        </GridPane>
+                    </content>
+                </TitledPane>
