@@ -1,278 +1,124 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.text.Font?>
-
-<VBox spacing="15.0" styleClass="root" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="hu.bmw.pdt.backend.controller.EditEmployeeDialogController">
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hu.bmw.pdt.backend.controller.NewSessionDialogController"
+      prefHeight="400.0" prefWidth="600.0">
     <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+        <Insets bottom="20.0" right="20.0" top="20.0" left="20.0"/>
     </padding>
     <children>
-        <!-- FELSŐ SZEKCIÓ: DOLGOZÓ ALAPADATAI -->
-        <BorderPane>
-            <left>
-                <VBox spacing="5.0">
-                    <children>
-                        <Label text="Surname:" />
-                        <Label fx:id="employeeSurnameLabel" text="-" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
-                        <Label text="First Name:">
-                           <VBox.margin>
-                              <Insets top="10.0" />
-                           </VBox.margin>
-                        </Label>
-                        <Label fx:id="employeeFirstnameLabel" text="-" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
-                    </children>
-                </VBox>
-            </left>
-            <right>
-                <GridPane hgap="10.0" vgap="5.0">
-                    <children>
-                        <Label text="Local Job Title:" style="-fx-font-weight: bold;" />
-                        <Label fx:id="localJobTitleLabel" text="-" GridPane.columnIndex="1" />
-                        <Label text="ShortCode:" style="-fx-font-weight: bold;" GridPane.rowIndex="1" />
-                        <Label fx:id="shortCodeLabel" text="-" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                        <Label text="Functional Level:" style="-fx-font-weight: bold;" GridPane.rowIndex="2" />
-                        <Label fx:id="functionalLevelLabel" text="-" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                        <Label text="Personal Grade:" style="-fx-font-weight: bold;" GridPane.rowIndex="3" />
-                        <Label fx:id="personalGradeLabel" text="-" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                        <Label text="A/B Category:" style="-fx-font-weight: bold;" GridPane.rowIndex="4" />
-                        <Label fx:id="abCategoryLabel" text="N/A" style="-fx-font-size: 18px; -fx-font-weight: bold;" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-                    </children>
-                </GridPane>
-            </right>
-        </BorderPane>
-        <Separator />
-
-        <!-- SGx ÁTSOROLÁS SZEKCIÓ -->
-        <TitledPane animated="false" text="SGxA/B Átsorolás">
-            <content>
-                <GridPane hgap="20.0">
-                    <columnConstraints>
-                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="250.0" />
-                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="300.0" />
-                    </columnConstraints>
-                    <children>
-                        <VBox spacing="10.0" GridPane.columnIndex="0">
-                            <padding><Insets top="10" bottom="10" left="5" right="5" /></padding>
-                            <children>
-                                <Label text="Státusz" />
-                                <HBox alignment="CENTER_LEFT" spacing="20.0">
-                                    <children>
-                                        <RadioButton fx:id="sgxbReadyRadio" text="Ready" />
-                                        <RadioButton fx:id="sgxbNotReadyRadio" text="Not Ready" />
-                                        <RadioButton fx:id="sgxbNA" text="N/A" />
-                                    </children>
-                                </HBox>
-                                <TextArea fx:id="notReadyCommentArea" managed="false" promptText="Indoklás (ha 'Not Ready')..." visible="false" />
-                            </children>
-                        </VBox>
-                        <VBox fx:id="lastDataPane" managed="false" spacing="5.0" visible="false" GridPane.columnIndex="1">
-                            <padding><Insets top="10" bottom="10" left="5" right="5" /></padding>
-                            <children>
-                                <Label text="Last Data:" style="-fx-font-weight: bold;" />
-                                <HBox spacing="5.0"><Label text="Last A/B Confirmation:" /><Label fx:id="lastABConfirmationLabel" text="-" /></HBox>
-                                <HBox spacing="5.0"><Label text="Last PDT Status:" /><Label fx:id="lastPDTStatusLabel" text="-" /></HBox>
-                            </children>
-                        </VBox>
-                    </children>
-                </GridPane>
-            </content>
-        </TitledPane>
-        <Separator />
-
-        <!-- PERSONNEL DEVELOPMENT SZEKCIÓ -->
-        <TitledPane animated="false" text="Personnel Developement">
-            <content>
-                <VBox spacing="10.0">
-                    <padding><Insets bottom="10.0" right="5.0" top="10.0" left="5.0" /></padding>
-                    <children>
-                        <Label text="Personnal Developement Status:" />
-                        <ComboBox fx:id="statusCombobox" prefWidth="300.0" promptText="Válassz státuszt.." />
-                        <VBox fx:id="targetFieldsPane" managed="false" spacing="10.0" visible="false">
-                            <children>
-                                <Separator />
-                                <GridPane hgap="10.0" vgap="10.0">
-                                    <children>
-                                        <Label text="Target Position (*):" GridPane.rowIndex="0" />
-                                        <ComboBox fx:id="targetPositionCombobox" editable="true" prefWidth="300.0" promptText="Válassz vagy gépelj.." GridPane.columnIndex="1" GridPane.rowIndex="0" />
-                                        <Label text="Target Position Number:" GridPane.rowIndex="1" />
-                                        <TextField fx:id="targetPositionNumberField" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                                        <Label text="Target Date (*)" GridPane.rowIndex="2" />
-                                        <DatePicker fx:id="targetDateField" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                                        <Label text="Comment: " GridPane.rowIndex="3" />
-                                        <TextArea fx:id="commentArea" prefHeight="100.0" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                                    </children>
-                                </GridPane>
-                            </children>
-                        </VBox>
-                    </children>
-                </VBox>
-            </content>
-        </TitledPane>
-
-        <HBox alignment="CENTER_RIGHT" spacing="10.0">
+        <Label text="Új Session Létrehozása" styleClass="titleLabel">
+            <font>
+                <Font name="System Bold" size="20.0"  />
+            </font>
+        </Label>
+        <GridPane hgap="10.0" vgap="10.0">
             <children>
-                <Button onAction="#handleSave" text="Submit" />
-                <Button onAction="#handleCancel" text="Cancel" />
+                <Label text="Session Név:" GridPane.rowIndex="0"/>
+                <TextField fx:id="sessionNameField" promptText="pl. PDT S1" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                <Label text="Részlegkód (Department): " GridPane.rowIndex="1"/>
+                <ComboBox fx:id="departmentCodeComboBox" editable="true" prefWidth="250.0" promptText="Válassz vagy gépelj.." GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            </children>
+        </GridPane>
+        <HBox alignment="CENTER" spacing="10" styleClass="dialogHbox">
+            <children>
+                <Button fx:id="createButton" onAction="#handleCreate" text="Létrehozás"/>
+                <Button fx:id="cancelButton" onAction="#handleCancel" text="Mégse"/>
             </children>
         </HBox>
     </children>
 </VBox>
 
 
-######################################################
-#################
-############
-package hu.bmw.pdt.backend.controller;
-
-import hu.bmw.pdt.model.Employee;
-import hu.bmw.pdt.service.EmployeeService;
-import javafx.collections.FXCollections;
-import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-
 @Component
-public class EditEmployeeDialogController {
+public class NewSessionDialogController {
 
-    // Fejléc mezők
-    @FXML private Label employeeSurnameLabel, employeeFirstnameLabel, localJobTitleLabel, shortCodeLabel, functionalLevelLabel, personalGradeLabel, abCategoryLabel;
+    @FXML
+    private TextField sessionNameField;
+    @FXML
+    private ComboBox<String> departmentCodeComboBox;
+    @FXML
+    private Button createButton;
 
-    // SGx Szekció
-    @FXML private RadioButton sgxbReadyRadio, sgxbNotReadyRadio, sgxbNA;
-    @FXML private TextArea notReadyCommentArea;
-    @FXML private VBox lastDataPane;
-    @FXML private Label lastABConfirmationLabel, lastPDTStatusLabel;
+    private final EmployeeService employeeService;
+    private boolean confirmed=false;
+    private boolean selectionMade =false;
 
-    // Development Szekció
-    @FXML private ComboBox<String> statusCombobox;
-    @FXML private VBox targetFieldsPane;
-    @FXML private ComboBox<String> targetPositionCombobox;
-    @FXML private TextField targetPositionNumberField;
-    @FXML private DatePicker targetDateField;
-    @FXML private TextArea commentArea;
-
-    private final ToggleGroup sgxToggleGroup = new ToggleGroup();
-    private Employee currentEmployee;
-    private boolean confirmed = false;
-    private final EmployeeService employeeService; // Szükséges az auto-complete-hez
-
-    public EditEmployeeDialogController(EmployeeService employeeService) {
-        this.employeeService = employeeService;
+    public NewSessionDialogController(EmployeeService employeeService){
+        this.employeeService= employeeService;
     }
 
     @FXML
-    private void initialize() {
-        sgxbReadyRadio.setToggleGroup(sgxToggleGroup);
-        sgxbNotReadyRadio.setToggleGroup(sgxToggleGroup);
-        sgxbNA.setToggleGroup(sgxToggleGroup);
-
-        statusCombobox.setItems(FXCollections.observableArrayList("", "Recommendation for Identification", "Candidate in active development", "Ready Candidate", "Process Cancelled"));
-
-        statusCombobox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            boolean hasStatus = newVal != null && !newVal.isEmpty();
-            targetFieldsPane.setVisible(hasStatus);
-            targetFieldsPane.setManaged(hasStatus);
-        });
-
-        sgxToggleGroup.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
-            boolean isNotReady = newVal == sgxbNotReadyRadio;
-            notReadyCommentArea.setVisible(isNotReady);
-            notReadyCommentArea.setManaged(isNotReady);
-        });
-    }
-
-    public void initData(Employee employee) {
-        this.currentEmployee = employee;
-        
-        // Fejléc feltöltése
-        employeeSurnameLabel.setText(employee.getLastName());
-        employeeFirstnameLabel.setText(employee.getFirstName());
-        localJobTitleLabel.setText(employee.getPositionTitle());
-        shortCodeLabel.setText(employee.getDepartmentShortCode());
-        functionalLevelLabel.setText(employee.getGlobalFunctionalLevel());
-        personalGradeLabel.setText(employee.getLocalPersonalGrade());
-        abCategoryLabel.setText(employee.getAbCategory() != null ? employee.getAbCategory() : "N/A");
-
-        // "Last Data" szekció dinamikus megjelenítése
-        boolean hasLastData = (employee.getLastABConfirmation() != null && !employee.getLastABConfirmation().isEmpty()) ||
-                              (employee.getLastPDTStatus() != null && !employee.getLastPDTStatus().isEmpty());
-        lastDataPane.setVisible(hasLastData);
-        lastDataPane.setManaged(hasLastData);
-        if (hasLastData) {
-            lastABConfirmationLabel.setText(employee.getLastABConfirmation());
-            lastPDTStatusLabel.setText(employee.getLastPDTStatus());
-        }
-
-        // SGx RadioButton-ok beállítása
-        if ("Yes".equalsIgnoreCase(employee.getCurrentABConfirmation())) {
-            sgxbReadyRadio.setSelected(true);
-        } else if (employee.getCurrentABConfirmation() != null && employee.getCurrentABConfirmation().toLowerCase().startsWith("no")) {
-            sgxbNotReadyRadio.setSelected(true);
-        } else {
-            sgxbNA.setSelected(true);
-        }
-        
-        // Development mezők feltöltése
-        statusCombobox.setValue(employee.getCurrentPDTStatus());
-        targetPositionNumberField.setText(employee.getJobCardNumber());
-        targetDateField.setValue(employee.getStartOfDevelopment());
-        commentArea.setText(employee.getCurrentPDTComment());
-        
-        // Célpozíció auto-complete feltöltése
-        List<String> positionsInDepartment = employeeService.findDistinctPositionTitlesByDepartment(employee.getDepartmentShortCode());
-        targetPositionCombobox.setItems(FXCollections.observableArrayList(positionsInDepartment));
-        targetPositionCombobox.getEditor().setText(employee.getTargetPosition());
-    }
-
-    @FXML
-    private void handleSave() {
-        if (targetFieldsPane.isVisible()) {
-            if (targetPositionCombobox.getEditor().getText().trim().isEmpty() || targetDateField.getValue() == null) {
-                showError("Ha van státusz, a Target Position (*) és a Céldátum(*) kitöltése kötelező!");
+    private void initialize(){
+        ObservableList<String>  allDepartments=FXCollections.observableArrayList(employeeService.findDistinctDepartmentCodes());
+        FilteredList<String> filterDepartments = new FilteredList<>(allDepartments, p->true);
+        departmentCodeComboBox.setItems(filterDepartments);
+        departmentCodeComboBox.setVisibleRowCount(7);
+        departmentCodeComboBox.getEditor().textProperty().addListener((obs,oldText,newText)->
+        {
+            if(selectionMade && newText.equals(departmentCodeComboBox.getSelectionModel().getSelectedItem())){
                 return;
             }
-        }
+            selectionMade = false;
 
-        RadioButton selectedSgx = (RadioButton) sgxToggleGroup.getSelectedToggle();
-        if (selectedSgx == sgxbReadyRadio) {
-            currentEmployee.setCurrentABConfirmation("Yes");
-        } else if (selectedSgx == sgxbNotReadyRadio) {
-            currentEmployee.setCurrentABConfirmation("No " + notReadyCommentArea.getText());
-        } else {
-            currentEmployee.setCurrentABConfirmation("N/A");
-        }
+            Platform.runLater(()-> {
+                if(departmentCodeComboBox.getSelectionModel().getSelectedItem() == null ||
+                        !departmentCodeComboBox.getSelectionModel().getSelectedItem().equals(newText)){
+                        filterDepartments.setPredicate(department ->{
+                            if(newText == null || newText.isEmpty()){
+                                return true;
+                            }
+                            String lowerCaseFilter= newText.toLowerCase();
+                            return department.toLowerCase().contains(lowerCaseFilter);
+                        });
+                        if(!departmentCodeComboBox.isShowing()){
+                            departmentCodeComboBox.show();
+                        }
+                }
+            });
+        });
+        departmentCodeComboBox.getSelectionModel().selectedItemProperty().addListener((obs,oldVal, newVal)->{
+            if(newVal!=null){
+                selectionMade=true;
+                departmentCodeComboBox.hide();
+            }
+        });
+            /*
+             * IDE ESETLEG MÉG A MANAGER UGYANÍGY
+             * */
+    }
 
-        boolean isSgxSelected = selectedSgx != sgxbNA;
-        boolean isDevStatusSelected = statusCombobox.getValue() != null && !statusCombobox.getValue().isEmpty();
-        currentEmployee.setDiscussed(isSgxSelected || isDevStatusSelected);
-        
-        currentEmployee.setCurrentPDTStatus(statusCombobox.getValue());
-        currentEmployee.setTargetPosition(targetPositionCombobox.getEditor().getText());
-        currentEmployee.setJobCardNumber(targetPositionNumberField.getText());
-        currentEmployee.setStartOfDevelopment(targetDateField.getValue());
-        currentEmployee.setCurrentPDTComment(commentArea.getText());
-        
-        confirmed = true;
+    @FXML
+    void handleCreate(ActionEvent event){
+        if(getSessionName().trim().isEmpty() || getDepartmentCode()==null || getDepartmentCode().trim().isEmpty()){
+            System.out.println("Hiba: a mezők kitöltése kötelező!");
+            return;
+        }
+        confirmed=true;
         closeDialog();
     }
 
-    private void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle("Validációs Hiba");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+    @FXML
+    void handleCancel(ActionEvent event){
+        confirmed=false;
+        closeDialog();
     }
 
-    @FXML
-    private void handleCancel() { closeDialog(); }
-    private void closeDialog() { ((Stage) employeeSurnameLabel.getScene().getWindow()).close(); }
-    public boolean isConfirmed() { return confirmed; }
+    private void closeDialog() {
+        Stage stage=(Stage) createButton.getScene().getWindow();
+        stage.close();
+    }
+
+    public boolean isConfirmed(){
+        return confirmed;
+    }
+
+    public String getSessionName(){
+        return sessionNameField.getText();
+    }
+
+    public String getDepartmentCode(){
+        return departmentCodeComboBox.getEditor().getText();
+    }
+
+
 }
