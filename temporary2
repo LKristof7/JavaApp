@@ -1,124 +1,40 @@
-<VBox xmlns="http://javafx.com/javafx"
-      xmlns:fx="http://javafx.com/fxml"
-      fx:controller="hu.bmw.pdt.backend.controller.NewSessionDialogController"
-      prefHeight="400.0" prefWidth="600.0">
+<VBox spacing="15.0" styleClass="root" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="hu.bmw.pdt.backend.controller.NewSessionDialogController">
     <padding>
-        <Insets bottom="20.0" right="20.0" top="20.0" left="20.0"/>
+        <Insets bottom="20.0" left="25.0" right="25.0" top="20.0" />
     </padding>
     <children>
-        <Label text="Új Session Létrehozása" styleClass="titleLabel">
-            <font>
-                <Font name="System Bold" size="20.0"  />
-            </font>
+        <Label text="Új Session Létrehozása" style="-fx-font-size: 22px; -fx-font-weight: bold;">
+            <VBox.margin>
+                <Insets bottom="10.0" />
+            </VBox.margin>
         </Label>
-        <GridPane hgap="10.0" vgap="10.0">
+        
+        <GridPane hgap="10.0" vgap="15.0">
             <children>
-                <Label text="Session Név:" GridPane.rowIndex="0"/>
-                <TextField fx:id="sessionNameField" promptText="pl. PDT S1" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
-                <Label text="Részlegkód (Department): " GridPane.rowIndex="1"/>
-                <ComboBox fx:id="departmentCodeComboBox" editable="true" prefWidth="250.0" promptText="Válassz vagy gépelj.." GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                <Label text="Session Név:" GridPane.rowIndex="0" />
+                <VBox spacing="2.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                    <children>
+                        <TextField fx:id="sessionNameField" promptText="pl. Q3 Development Talk" />
+                        <!-- Ez a címke a valós idejű hibaüzenethez -->
+                        <Label fx:id="validationErrorLabel" managed="false" style="-fx-text-fill: #e53935;" visible="false" />
+                    </children>
+                </VBox>
+
+                <Label text="Részlegkód (Department):" GridPane.rowIndex="1" />
+                <ComboBox fx:id="departmentCodeComboBox" editable="true" prefWidth="300.0" promptText="Válassz vagy gépelj..." GridPane.columnIndex="1" GridPane.rowIndex="1" />
             </children>
         </GridPane>
-        <HBox alignment="CENTER" spacing="10" styleClass="dialogHbox">
+        
+        <HBox alignment="CENTER_RIGHT" spacing="10.0">
+             <VBox.margin>
+                <Insets top="15.0" />
+            </VBox.margin>
             <children>
-                <Button fx:id="createButton" onAction="#handleCreate" text="Létrehozás"/>
-                <Button fx:id="cancelButton" onAction="#handleCancel" text="Mégse"/>
+                <Button fx:id="createButton" onAction="#handleCreate" text="Létrehozás" />
+                <Button onAction="#handleCancel" text="Mégse" />
             </children>
         </HBox>
     </children>
 </VBox>
 
 
-@Component
-public class NewSessionDialogController {
-
-    @FXML
-    private TextField sessionNameField;
-    @FXML
-    private ComboBox<String> departmentCodeComboBox;
-    @FXML
-    private Button createButton;
-
-    private final EmployeeService employeeService;
-    private boolean confirmed=false;
-    private boolean selectionMade =false;
-
-    public NewSessionDialogController(EmployeeService employeeService){
-        this.employeeService= employeeService;
-    }
-
-    @FXML
-    private void initialize(){
-        ObservableList<String>  allDepartments=FXCollections.observableArrayList(employeeService.findDistinctDepartmentCodes());
-        FilteredList<String> filterDepartments = new FilteredList<>(allDepartments, p->true);
-        departmentCodeComboBox.setItems(filterDepartments);
-        departmentCodeComboBox.setVisibleRowCount(7);
-        departmentCodeComboBox.getEditor().textProperty().addListener((obs,oldText,newText)->
-        {
-            if(selectionMade && newText.equals(departmentCodeComboBox.getSelectionModel().getSelectedItem())){
-                return;
-            }
-            selectionMade = false;
-
-            Platform.runLater(()-> {
-                if(departmentCodeComboBox.getSelectionModel().getSelectedItem() == null ||
-                        !departmentCodeComboBox.getSelectionModel().getSelectedItem().equals(newText)){
-                        filterDepartments.setPredicate(department ->{
-                            if(newText == null || newText.isEmpty()){
-                                return true;
-                            }
-                            String lowerCaseFilter= newText.toLowerCase();
-                            return department.toLowerCase().contains(lowerCaseFilter);
-                        });
-                        if(!departmentCodeComboBox.isShowing()){
-                            departmentCodeComboBox.show();
-                        }
-                }
-            });
-        });
-        departmentCodeComboBox.getSelectionModel().selectedItemProperty().addListener((obs,oldVal, newVal)->{
-            if(newVal!=null){
-                selectionMade=true;
-                departmentCodeComboBox.hide();
-            }
-        });
-            /*
-             * IDE ESETLEG MÉG A MANAGER UGYANÍGY
-             * */
-    }
-
-    @FXML
-    void handleCreate(ActionEvent event){
-        if(getSessionName().trim().isEmpty() || getDepartmentCode()==null || getDepartmentCode().trim().isEmpty()){
-            System.out.println("Hiba: a mezők kitöltése kötelező!");
-            return;
-        }
-        confirmed=true;
-        closeDialog();
-    }
-
-    @FXML
-    void handleCancel(ActionEvent event){
-        confirmed=false;
-        closeDialog();
-    }
-
-    private void closeDialog() {
-        Stage stage=(Stage) createButton.getScene().getWindow();
-        stage.close();
-    }
-
-    public boolean isConfirmed(){
-        return confirmed;
-    }
-
-    public String getSessionName(){
-        return sessionNameField.getText();
-    }
-
-    public String getDepartmentCode(){
-        return departmentCodeComboBox.getEditor().getText();
-    }
-
-
-}
