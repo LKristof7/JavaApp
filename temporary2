@@ -1,40 +1,143 @@
-<VBox spacing="15.0" styleClass="root" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="hu.bmw.pdt.backend.controller.NewSessionDialogController">
-    <padding>
-        <Insets bottom="20.0" left="25.0" right="25.0" top="20.0" />
-    </padding>
-    <children>
-        <Label text="Új Session Létrehozása" style="-fx-font-size: 22px; -fx-font-weight: bold;">
-            <VBox.margin>
-                <Insets bottom="10.0" />
-            </VBox.margin>
-        </Label>
-        
-        <GridPane hgap="10.0" vgap="15.0">
-            <children>
-                <Label text="Session Név:" GridPane.rowIndex="0" />
-                <VBox spacing="2.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                    <children>
-                        <TextField fx:id="sessionNameField" promptText="pl. Q3 Development Talk" />
-                        <!-- Ez a címke a valós idejű hibaüzenethez -->
-                        <Label fx:id="validationErrorLabel" managed="false" style="-fx-text-fill: #e53935;" visible="false" />
-                    </children>
-                </VBox>
+<?xml version="1.0" encoding="UTF-8"?>
 
-                <Label text="Részlegkód (Department):" GridPane.rowIndex="1" />
-                <ComboBox fx:id="departmentCodeComboBox" editable="true" prefWidth="300.0" promptText="Válassz vagy gépelj..." GridPane.columnIndex="1" GridPane.rowIndex="1" />
-            </children>
-        </GridPane>
-        
-        <HBox alignment="CENTER_RIGHT" spacing="10.0">
-             <VBox.margin>
-                <Insets top="15.0" />
-            </VBox.margin>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane styleClass="root" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="hu.bmw.pdt.backend.controller.AddEmployeeDialogController" prefHeight="600.0" prefWidth="800.0">
+    <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+    </padding>
+    <top>
+        <VBox alignment="CENTER" spacing="10.0" BorderPane.alignment="CENTER">
             <children>
-                <Button fx:id="createButton" onAction="#handleCreate" text="Létrehozás" />
+                <Label text="Dolgozók Hozzáadása a Session-höz">
+                    <font>
+                        <Font name="System Bold" size="18.0" />
+                    </font>
+                </Label>
+                <HBox alignment="CENTER" spacing="10.0">
+                    <children>
+                        <TextField fx:id="nameFilterField" promptText="Név szűrő..." />
+                        <TextField fx:id="departmentFilterField" promptText="Részleg szűrő..." />
+                    </children>
+                </HBox>
+            </children>
+            <padding>
+                <Insets bottom="10.0" />
+            </padding>
+        </VBox>
+    </top>
+    <center>
+        <TableView fx:id="availableEmployeesTable" BorderPane.alignment="CENTER">
+            <columns>
+                <TableColumn fx:id="displayNameColumn" prefWidth="250.0" text="Név" />
+                <TableColumn fx:id="positionTitleColumn" prefWidth="350.0" text="Pozíció" />
+                <TableColumn fx:id="departmentColumn" prefWidth="150.0" text="Részleg" />
+            </columns>
+        </TableView>
+    </center>
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10.0" BorderPane.alignment="CENTER">
+            <children>
+                <Button onAction="#handleAdd" text="Kiválasztottak Hozzáadása" />
                 <Button onAction="#handleCancel" text="Mégse" />
             </children>
+            <padding>
+                <Insets top="10.0" />
+            </padding>
         </HBox>
-    </children>
-</VBox>
+    </bottom>
+</BorderPane>
 
 
+import java.util.List;
+
+@Component
+public class AddEmployeeDialogController {
+
+    @FXML
+    private TableView<Employee> availableEmployeesTable;
+    @FXML
+    private TableColumn<Employee, String> displayNameColumn;
+    @FXML
+    private TableColumn<Employee, String> positionTitleColumn;
+    @FXML
+    private TableColumn<Employee, String> departmentColumn;
+    @FXML
+    private TextField nameFilterField;
+    @FXML
+    private TextField departmentFilterField;
+
+    private final TalkSessionService talkSessionService;
+    private boolean confirmed = false;
+    private List<Employee> selectedEmployees;
+
+    public AddEmployeeDialogController(TalkSessionService talkSessionService) {
+        this.talkSessionService = talkSessionService;
+    }
+
+    @FXML
+    private void initialize() {
+        // Több elem kijelölésének engedélyezése
+        availableEmployeesTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
+        displayNameColumn.setCellValueFactory(new PropertyValueFactory<>("displayName"));
+        positionTitleColumn.setCellValueFactory(new PropertyValueFactory<>("positionTitle"));
+        departmentColumn.setCellValueFactory(new PropertyValueFactory<>("departmentShortCode"));
+    }
+
+    /**
+     * Betölti a hozzáadható dolgozókat a táblázatba.
+     * @param session Az aktuális session, aminek a tagjait ki kell hagyni.
+     */
+    public void initData(TalkSession session) {
+        List<Employee> availableEmployees = talkSessionService.findEmployeesNotInSession(session);
+        ObservableList<Employee> observableEmployees = FXCollections.observableArrayList(availableEmployees);
+        FilteredList<Employee> filteredData = new FilteredList<>(observableEmployees, p -> true);
+
+        nameFilterField.textProperty().addListener((obs, oldVal, newVal) -> applyFilters(filteredData));
+        departmentFilterField.textProperty().addListener((obs, oldVal, newVal) -> applyFilters(filteredData));
+
+        availableEmployeesTable.setItems(filteredData);
+    }
+
+    private void applyFilters(FilteredList<Employee> filteredData) {
+        String nameFilter = nameFilterField.getText().toLowerCase();
+        String departmentFilter = departmentFilterField.getText().toLowerCase();
+
+        filteredData.setPredicate(employee -> {
+            boolean nameMatch = employee.getDisplayName().toLowerCase().contains(nameFilter);
+            boolean departmentMatch = employee.getDepartmentShortCode().toLowerCase().contains(departmentFilter);
+            return nameMatch && departmentMatch;
+        });
+    }
+
+    @FXML
+    private void handleAdd() {
+        this.selectedEmployees = availableEmployeesTable.getSelectionModel().getSelectedItems();
+        if (this.selectedEmployees != null && !this.selectedEmployees.isEmpty()) {
+            this.confirmed = true;
+            closeDialog();
+        }
+    }
+
+    @FXML
+    private void handleCancel() {
+        this.confirmed = false;
+        closeDialog();
+    }
+
+    private void closeDialog() {
+        ((Stage) availableEmployeesTable.getScene().getWindow()).close();
+    }
+
+    public boolean isConfirmed() {
+        return confirmed;
+    }
+
+    public List<Employee> getSelectedEmployees() {
+        return selectedEmployees;
+    }
+}
