@@ -1,143 +1,86 @@
-<?xml version="1.0" encoding="UTF-8"?>
+public Optional<List<Employee>> showAddEmployeesDialog(Node ownerNode, TalkSession session) {
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/fxml/add-employee-dialog.fxml"));
+            fxmlLoader.setControllerFactory(applicationContext::getBean);
+            Scene scene = new Scene(fxmlLoader.load());
+            AddEmployeeDialogController controller = fxmlLoader.getController();
+            
+            // Átadjuk az aktuális session-t, hogy a controller tudja, kiket kell kihagyni a listából.
+            controller.initData(session);
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.text.Font?>
+            themeManager.applyTheme(scene);
 
-<BorderPane styleClass="root" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="hu.bmw.pdt.backend.controller.AddEmployeeDialogController" prefHeight="600.0" prefWidth="800.0">
-    <padding>
-        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-    </padding>
-    <top>
-        <VBox alignment="CENTER" spacing="10.0" BorderPane.alignment="CENTER">
-            <children>
-                <Label text="Dolgozók Hozzáadása a Session-höz">
-                    <font>
-                        <Font name="System Bold" size="18.0" />
-                    </font>
-                </Label>
-                <HBox alignment="CENTER" spacing="10.0">
-                    <children>
-                        <TextField fx:id="nameFilterField" promptText="Név szűrő..." />
-                        <TextField fx:id="departmentFilterField" promptText="Részleg szűrő..." />
-                    </children>
-                </HBox>
-            </children>
-            <padding>
-                <Insets bottom="10.0" />
-            </padding>
-        </VBox>
-    </top>
-    <center>
-        <TableView fx:id="availableEmployeesTable" BorderPane.alignment="CENTER">
-            <columns>
-                <TableColumn fx:id="displayNameColumn" prefWidth="250.0" text="Név" />
-                <TableColumn fx:id="positionTitleColumn" prefWidth="350.0" text="Pozíció" />
-                <TableColumn fx:id="departmentColumn" prefWidth="150.0" text="Részleg" />
-            </columns>
-        </TableView>
-    </center>
-    <bottom>
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Új Tagok Hozzáadása");
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.initOwner(ownerNode.getScene().getWindow());
+            dialogStage.setScene(scene);
+            dialogStage.showAndWait();
+
+            if (controller.isConfirmed()) {
+                return Optional.ofNullable(controller.getSelectedEmployees());
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            // Itt lehetne egy hibaüzenetet is megjeleníteni
+        }
+        return Optional.empty();
+    }
+
+ <bottom>
+        <!-- EZ AZ ÚJ SZEKCIÓ A GOMBOKKAL -->
         <HBox alignment="CENTER_RIGHT" spacing="10.0" BorderPane.alignment="CENTER">
-            <children>
-                <Button onAction="#handleAdd" text="Kiválasztottak Hozzáadása" />
-                <Button onAction="#handleCancel" text="Mégse" />
-            </children>
             <padding>
                 <Insets top="10.0" />
             </padding>
+            <children>
+                <Button onAction="#handleAddEmployees" text="+ Tag Hozzáadása" />
+                <Button onAction="#handleRemoveEmployees" text="- Tag Eltávolítása" />
+            </children>
         </HBox>
     </bottom>
-</BorderPane>
 
 
-import java.util.List;
-
-@Component
-public class AddEmployeeDialogController {
-
-    @FXML
-    private TableView<Employee> availableEmployeesTable;
-    @FXML
-    private TableColumn<Employee, String> displayNameColumn;
-    @FXML
-    private TableColumn<Employee, String> positionTitleColumn;
-    @FXML
-    private TableColumn<Employee, String> departmentColumn;
-    @FXML
-    private TextField nameFilterField;
-    @FXML
-    private TextField departmentFilterField;
-
-    private final TalkSessionService talkSessionService;
-    private boolean confirmed = false;
-    private List<Employee> selectedEmployees;
-
-    public AddEmployeeDialogController(TalkSessionService talkSessionService) {
-        this.talkSessionService = talkSessionService;
-    }
-
-    @FXML
-    private void initialize() {
-        // Több elem kijelölésének engedélyezése
-        availableEmployeesTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-
-        displayNameColumn.setCellValueFactory(new PropertyValueFactory<>("displayName"));
-        positionTitleColumn.setCellValueFactory(new PropertyValueFactory<>("positionTitle"));
-        departmentColumn.setCellValueFactory(new PropertyValueFactory<>("departmentShortCode"));
-    }
-
-    /**
-     * Betölti a hozzáadható dolgozókat a táblázatba.
-     * @param session Az aktuális session, aminek a tagjait ki kell hagyni.
+ /**
+     * A "+ Tag Hozzáadása" gomb logikája.
      */
-    public void initData(TalkSession session) {
-        List<Employee> availableEmployees = talkSessionService.findEmployeesNotInSession(session);
-        ObservableList<Employee> observableEmployees = FXCollections.observableArrayList(availableEmployees);
-        FilteredList<Employee> filteredData = new FilteredList<>(observableEmployees, p -> true);
-
-        nameFilterField.textProperty().addListener((obs, oldVal, newVal) -> applyFilters(filteredData));
-        departmentFilterField.textProperty().addListener((obs, oldVal, newVal) -> applyFilters(filteredData));
-
-        availableEmployeesTable.setItems(filteredData);
-    }
-
-    private void applyFilters(FilteredList<Employee> filteredData) {
-        String nameFilter = nameFilterField.getText().toLowerCase();
-        String departmentFilter = departmentFilterField.getText().toLowerCase();
-
-        filteredData.setPredicate(employee -> {
-            boolean nameMatch = employee.getDisplayName().toLowerCase().contains(nameFilter);
-            boolean departmentMatch = employee.getDepartmentShortCode().toLowerCase().contains(departmentFilter);
-            return nameMatch && departmentMatch;
+    @FXML
+    private void handleAddEmployees() {
+        dialogFactory.showAddEmployeesDialog(employeeTable, currentSession).ifPresent(selectedEmployees -> {
+            if (!selectedEmployees.isEmpty()) {
+                talkSessionService.addEmployeesToSession(currentSession, selectedEmployees);
+                refreshTable(); // Frissítjük a táblázatot az új tagokkal
+            }
         });
     }
 
+    /**
+     * A "- Tag Eltávolítása" gomb logikája.
+     */
     @FXML
-    private void handleAdd() {
-        this.selectedEmployees = availableEmployeesTable.getSelectionModel().getSelectedItems();
-        if (this.selectedEmployees != null && !this.selectedEmployees.isEmpty()) {
-            this.confirmed = true;
-            closeDialog();
+    private void handleRemoveEmployees() {
+        List<Employee> selectedEmployees = employeeTable.getSelectionModel().getSelectedItems();
+        if (selectedEmployees == null || selectedEmployees.isEmpty()) {
+            // Itt lehetne egy hibaüzenetet feldobni
+            return;
+        }
+
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmation.setTitle("Megerősítés");
+        confirmation.setHeaderText("Biztosan eltávolítod a kiválasztott " + selectedEmployees.size() + " dolgozót a session-ből?");
+        confirmation.setContentText("Ez a művelet nem vonható vissza.");
+
+        Optional<ButtonType> result = confirmation.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            talkSessionService.removeEmployeesFromSession(currentSession, selectedEmployees);
+            refreshTable(); // Frissítjük a táblázatot
         }
     }
 
-    @FXML
-    private void handleCancel() {
-        this.confirmed = false;
-        closeDialog();
+    /**
+     * Egy új metódus, ami frissíti a táblázat tartalmát.
+     */
+    private void refreshTable() {
+        employeeObservableList.setAll(currentSession.getEmployees());
     }
-
-    private void closeDialog() {
-        ((Stage) availableEmployeesTable.getScene().getWindow()).close();
-    }
-
-    public boolean isConfirmed() {
-        return confirmed;
-    }
-
-    public List<Employee> getSelectedEmployees() {
-        return selectedEmployees;
-    }
-}
