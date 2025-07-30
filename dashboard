@@ -1,0 +1,150 @@
+
+@Service
+public class EmployeeService {
+   
+
+    /**
+     * ÚJ METÓDUS: Megszámolja az összes dolgozót, akinek a 'discussed' állapota igaz.
+     * @return A megbeszélt dolgozók száma.
+     */
+    public long countAllDiscussedEmployees() {
+        return employeeRepository.findAll().stream()
+                .filter(Employee::isDiscussed)
+                .count();
+    }
+
+
+}
+
+*****************************************************************************************
+  <?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="hu.bmw.pdt.backend.controller.DashboardController">
+    <top>
+        <HBox alignment="CENTER_RIGHT" prefHeight="40.0" spacing="10.0">
+            <children>
+                <Label text="Dark Mode" />
+                <ToggleButton fx:id="themeToggle" text="Switch" />
+            </children>
+            <padding><Insets right="20.0" /></padding>
+        </HBox>
+    </top>
+    <center>
+        <VBox alignment="TOP_CENTER" spacing="20.0" styleClass="root">
+            <padding><Insets bottom="20.0" left="20.0" right="20.0" top="20.0" /></padding>
+            <children>
+                <Label text="Áttekintő Vezérlőpult" style="-fx-font-size: 24px; -fx-font-weight: bold;" />
+                
+                <!-- Dolgozók Száma Panel -->
+                <VBox alignment="CENTER" style="-fx-background-color: -fx-base; -fx-background-radius: 10;">
+                    <padding><Insets bottom="15.0" left="25.0" right="25.0" top="15.0" /></padding>
+                    <children>
+                        <Label text="Dolgozók száma az adatbázisban" />
+                        <Label fx:id="employeeCountLabel" text="0" style="-fx-font-size: 36px; -fx-font-weight: bold;" />
+                    </children>
+                </VBox>
+
+                <!-- ÚJ, INTERAKTÍV SESSION PANEL -->
+                <VBox alignment="CENTER" style="-fx-background-color: -fx-base; -fx-background-radius: 10;">
+                    <padding><Insets bottom="15.0" left="25.0" right="25.0" top="15.0" /></padding>
+                    <children>
+                        <Label text="Aktív Session-ök / Megbeszélt Dolgozók" />
+                        <HBox alignment="BASELINE_CENTER" spacing="10.0">
+                            <children>
+                                <Label fx:id="sessionCountLabel" text="0" style="-fx-font-size: 36px; -fx-font-weight: bold;" />
+                                <Label text="/" style="-fx-font-size: 24px;"/>
+                                <Label fx:id="discussedEmployeeCountLabel" text="0" style="-fx-font-size: 36px; -fx-font-weight: bold;" />
+                            </children>
+                        </HBox>
+                        <Button onAction="#handleNavigateToSessions" text="Session Lista Megnyitása">
+                            <VBox.margin><Insets top="10.0" /></VBox.margin>
+                        </Button>
+                    </children>
+                </VBox>
+
+                <Button onAction="#handleReloadData" prefHeight="40.0" prefWidth="200.0" text="Új Excel betöltése..." />
+            </children>
+        </VBox>
+    </center>
+</BorderPane>
+
+
+
+*******************************************************************************************
+
+@Component
+public class DashboardController {
+    @FXML private Label employeeCountLabel;
+    @FXML private ToggleButton themeToggle;
+    @FXML private Label sessionCountLabel; // ÚJ
+    @FXML private Label discussedEmployeeCountLabel; // ÚJ
+    
+    private final EmployeeService employeeService;
+    private final DataManagementService dataManagementService;
+    private final ThemeManager themeManager;
+    private final TalkSessionService talkSessionService; // ÚJ FÜGGŐSÉG
+    
+    private Runnable onNavigateToSessionsAction; // Callback a navigációhoz
+
+    public DashboardController(EmployeeService employeeService, DataManagementService dataManagementService, ThemeManager themeManager, TalkSessionService talkSessionService) {
+        this.employeeService = employeeService;
+        this.dataManagementService = dataManagementService;
+        this.themeManager = themeManager;
+        this.talkSessionService = talkSessionService;
+    }
+
+    @FXML
+    private void initialize() {
+        themeToggle.setSelected(themeManager.isDarkTheme());
+        themeToggle.setOnAction(event -> handleThemeToggle());
+        refreshStats(); // Adatok betöltése
+    }
+    
+    // Ezt a metódust a MainController hívja meg, hogy a statisztikák mindig frissek legyenek
+    public void refreshStats() {
+        employeeCountLabel.setText(String.valueOf(employeeService.findAll().size()));
+        sessionCountLabel.setText(String.valueOf(talkSessionService.findAll().size()));
+        discussedEmployeeCountLabel.setText(String.valueOf(employeeService.countAllDiscussedEmployees()));
+    }
+    
+    @FXML
+    private void handleNavigateToSessions() {
+        if (onNavigateToSessionsAction != null) {
+            onNavigateToSessionsAction.run();
+        }
+    }
+    
+    public void setOnNavigateToSessionsAction(Runnable onNavigateToSessionsAction) {
+        this.onNavigateToSessionsAction = onNavigateToSessionsAction;
+    }
+    
+    // ... (a handleThemeToggle és handleReloadData metódusok változatlanok)
+}
+
+******************************************************************************************************************************************************Ű
+
+@Component
+public class MainController {
+   
+
+    @FXML
+    void showDashboardView() {
+        ViewManager.ViewAndController<DashboardController> viewAndController = viewManager.loadViewAndController("/fxml/dashboard-view.fxml");
+        DashboardController controller = viewAndController.controller();
+        
+        // Átadjuk a "parancsot", hogy a gomb tudjon navigálni
+        controller.setOnNavigateToSessionsAction(this::showSessionListView);
+        
+        // MINDIG frissítjük a statisztikákat, amikor a főképernyőre lépünk
+        controller.refreshStats();
+        
+        contentPane.setCenter(viewAndController.view());
+    }
+
+
+}
