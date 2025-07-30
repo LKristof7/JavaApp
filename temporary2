@@ -1,42 +1,108 @@
-<TitledPane fx:id="sgxTitledPane" animated="false" text="SGxA->B Ready?">
-                    <content>
-                        <GridPane hgap="20.0">
-                            <columnConstraints>
-                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="250.0" />
-                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="300.0" />
-                            </columnConstraints>
-                            <children>
-                                <VBox spacing="10.0" GridPane.columnIndex="0">
-                                    <padding><Insets top="10" bottom="10" left="5" right="5" /></padding>
-                                    <children>
-                                        <Label text="Status" />
-                                        <HBox alignment="CENTER_LEFT" spacing="20.0">
-                                            <children>
-                                                <RadioButton fx:id="sgxbReadyRadio" text="Ready" />
-                                                <RadioButton fx:id="sgxbNotReadyRadio" text="Not Ready" />
-                                                <RadioButton fx:id="sgxbNA" text="N/A" />
+package hu.bmw.pdt.backend.service;
 
-                                            </children>
-                                        </HBox>
-                                        <TextArea fx:id="notReadyCommentArea" managed="false" promptText="Justification (if 'Not Ready')..." visible="false" />
-                                    </children>
-                                </VBox>
-                                <VBox fx:id="lastDataPane" managed="false" spacing="5.0" visible="false" GridPane.columnIndex="1">
-                                    <padding><Insets top="10" bottom="10" left="5" right="5" /></padding>
-                                    <children>
-                                        <Label text="Last Data:" style="-fx-font-weight: bold;" />
-                                        <HBox spacing="5.0"><Label text="Last A/B Confirmation:" /><Label fx:id="lastABConfirmationLabel" text="-" /></HBox>
-                                        <HBox spacing="5.0"><Label text="Last PDT Status:" /><Label fx:id="lastPDTStatusLabel" text="-" /></HBox>
-                                    </children>
-                                </VBox>
-                                <VBox spacing="5.0">
-                                    <Label fx:id="sgxSuggestionLabel" managed="false" style="-fx-text-fill: #4CAF50; -fx-font-weight: bold;" visible="false">
-                                        <VBox.margin>
-                                            <Insets top="5.0" />
-                                        </VBox.margin>
-                                    </Label>
-                                </VBox>
-                            </children>
-                        </GridPane>
-                    </content>
-                </TitledPane>
+import hu.bmw.pdt.model.Employee;
+import hu.bmw.pdt.model.TalkSession;
+import hu.bmw.pdt.repository.EmployeeRepository;
+import hu.bmw.pdt.repository.TalkSessionRepository;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoField;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class DataManagementService {
+
+    private final EmployeeRepository employeeRepository;
+    private final TalkSessionRepository talkSessionRepository;
+    // Létrehozunk egy DataFormatter-t, amit újra tudunk használni.
+    private final DataFormatter dataFormatter = new DataFormatter();
+
+    public DataManagementService(EmployeeRepository employeeRepository, TalkSessionRepository talkSessionRepository) {
+        this.employeeRepository = employeeRepository;
+        this.talkSessionRepository = talkSessionRepository;
+    }
+
+    @Transactional
+    public void reloadDataFromExcel(File excelFile) throws IOException {
+        // ... (a metódus többi része, pl. a fájl beolvasása és a ciklus, változatlan) ...
+        // A változás a getCellValueAsString metódusban lesz.
+    }
+
+    public String exportDataToExcel(File directory) throws IOException {
+        // ... (ez a metódus változatlan) ...
+    }
+
+    /**
+     * JAVÍTOTT, "OKOS" METÓDUS A CELLAÉRTÉK KIOLVASÁSÁRA.
+     * A DataFormatter segítségével mindig a helyes, formázott értéket kapjuk vissza.
+     * @param cell A vizsgált cella.
+     * @return A cella értéke String-ként, a ".0" nélkül.
+     */
+    private String getCellValueAsString(Cell cell) {
+        if (cell == null) {
+            return "";
+        }
+        // A dataFormatter.formatCellValue(cell) a legbiztosabb módszer.
+        // Ha a cella numerikus, de egész szám, a ".0" nélkül adja vissza.
+        // Ha szöveg, akkor a szöveget adja vissza.
+        return dataFormatter.formatCellValue(cell).trim();
+    }
+
+    /**
+     * Robusztus dátumértelmező.
+     */
+    private LocalDate getCellValueAsLocalDate(Cell cell) {
+        if (cell == null || cell.getCellType() == CellType.BLANK) {
+            return null;
+        }
+
+        if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+            return cell.getDateCellValue().toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+        }
+
+        if (cell.getCellType() == CellType.STRING) {
+            String dateStr = cell.getStringCellValue().trim();
+            if (dateStr.isEmpty()) return null;
+
+            List<DateTimeFormatter> formatters = List.of(
+                    DateTimeFormatter.ofPattern("yyyy.MM.dd."),
+                    DateTimeFormatter.ofPattern("yyyy.MM.dd"),
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+                    DateTimeFormatter.ofPattern("M/d/yyyy"),
+                    DateTimeFormatter.ofPattern("d.M.yyyy"),
+                    new DateTimeFormatterBuilder().appendPattern("yyyy/M")
+                            .parseDefaulting(ChronoField.DAY_OF_MONTH, 1).toFormatter(),
+                    new DateTimeFormatterBuilder().appendPattern("yyyy-M")
+                            .parseDefaulting(ChronoField.DAY_OF_MONTH, 1).toFormatter()
+            );
+
+            for (DateTimeFormatter formatter : formatters) {
+                try {
+                    return LocalDate.parse(dateStr, formatter);
+                } catch (DateTimeParseException ignored) {
+                    // Ha nem sikerült, próbáljuk a következőt
+                }
+            }
+        }
+        return null;
+    }
+}
+
