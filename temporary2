@@ -1,84 +1,233 @@
-package hu.bmw.pdt.backend.controller;
 
-import hu.bmw.pdt.model.Employee;
-import hu.bmw.pdt.service.EmployeeService;
-import javafx.collections.FXCollections;
-import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
-import javafx.util.StringConverter;
-import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.List;
+@Service
+public class TalkSessionService {
 
-@Component
-public class EditEmployeeDialogController {
+    private final TalkSessionRepository talkSessionRepository;
+    private final EmployeeRepository employeeRepository;
 
-    // ... (a többi FXML mező változatlan) ...
-    @FXML
-    private DatePicker targetDateField;
+    // ... (a konstruktor és a többi meglévő metódus változatlan)
+
+    /**
+     * ÚJ METÓDUS: Törli a megadott session-öket az adatbázisból.
+     * @param sessions A törlendő TalkSession objektumok listája.
+     */
+    @Transactional
+    public void deleteSessions(List<TalkSession> sessions) {
+        talkSessionRepository.deleteAll(sessions);
+    }
+
+    /**
+     * ÚJ METÓDUS: Frissíti egy meglévő session nevét.
+     * @param session A módosítandó session.
+     * @param newName Az új név.
+     * @return A frissített TalkSession objektum.
+     * @throws IllegalStateException ha az új név már foglalt.
+     */
+    @Transactional
+    public TalkSession updateSessionName(TalkSession session, String newName) {
+        // Ellenőrizzük, hogy az új név nem ütközik-e egy MÁSIK session nevével
+        Optional<TalkSession> existingSession = talkSessionRepository.findBySessionName(newName);
+        if (existingSession.isPresent() && !existingSession.get().getId().equals(session.getId())) {
+            throw new IllegalStateException("Már létezik session '" + newName + "' néven!");
+        }
+
+        TalkSession managedSession = talkSessionRepository.findById(session.getId()).orElseThrow();
+        managedSession.setSessionName(newName);
+        return talkSessionRepository.save(managedSession);
+    }
     
-    private Employee currentEmployee;
-    private boolean confirmed = false;
-    private final EmployeeService employeeService;
+    // ... (a többi metódus változatlan)
+}
 
-    public EditEmployeeDialogController(EmployeeService employeeService) {
-        this.employeeService = employeeService;
+
+***********************************************************************************************************************
+public class SessionListController {
+
+    @FXML
+    private TableView<TalkSession> sessionTable;
+    // ... (a többi FXML mező változatlan)
+
+    private final TalkSessionService talkSessionService;
+    private final DialogFactory dialogFactory;
+    private Consumer<TalkSession> onSessionSelected;
+    private Runnable onBackAction;
+
+    public SessionListController(TalkSessionService talkSessionService, DialogFactory dialogFactory) {
+        this.talkSessionService = talkSessionService;
+        this.dialogFactory = dialogFactory;
     }
 
     @FXML
     private void initialize() {
-        // ... (a többi initialize logika, pl. a ComboBox-ok beállítása, változatlan) ...
+        // TÖBBSZÖRÖS KIJELÖLÉS ENGEDÉLYEZÉSE
+        sessionTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
-        // --- ÚJ, FONTOS RÉSZ: A DatePicker "Okosítása" ---
-        final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+        // ... (az oszlopok beállítása változatlan)
 
-        targetDateField.setConverter(new StringConverter<LocalDate>() {
-            @Override
-            public String toString(LocalDate date) {
-                // Ez a metódus felel azért, hogy a kiválasztott dátum milyen formában jelenjen meg.
-                if (date != null) {
-                    return dateFormatter.format(date);
-                } else {
-                    return "";
+        sessionTable.setRowFactory(tv -> {
+            TableRow<TalkSession> row = new TableRow<>();
+            ContextMenu contextMenu = createContextMenu();
+
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    onSessionSelected.accept(row.getItem());
                 }
-            }
+            });
 
-            @Override
-            public LocalDate fromString(String string) {
-                // Ez a metódus felel azért, hogy a beírt szöveget dátummá alakítsa.
-                if (string != null && !string.trim().isEmpty()) {
-                    try {
-                        // Először megpróbáljuk a preferált formátummal.
-                        return LocalDate.parse(string, dateFormatter);
-                    } catch (DateTimeParseException e) {
-                        // Ha nem sikerül, megpróbálunk egy másik gyakori formátumot is.
-                        try {
-                            return LocalDate.parse(string, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                        } catch (DateTimeParseException e2) {
-                            // Ha ez sem sikerül, jelezzük a hibát és null-t adunk vissza.
-                            System.err.println("Érvénytelen dátumformátum: " + string);
-                            targetDateField.getEditor().setStyle("-fx-border-color: #e53935; -fx-border-width: 2px;");
-                            return null;
-                        }
-                    }
-                } else {
-                    return null;
-                }
-            }
-        });
+            row.contextMenuProperty().bind(
+                row.emptyProperty().map(empty -> empty ? null : contextMenu)
+            );
 
-        // Listener, ami visszaállítja a stílust, ha a felhasználó javít a szövegen.
-        targetDateField.getEditor().textProperty().addListener((obs, oldVal, newVal) -> {
-            targetDateField.getEditor().setStyle(""); // Visszaállítjuk az alapértelmezett stílust
+            return row;
         });
-        // --- EDDIG TART AZ ÚJ RÉSZ ---
     }
 
-    // ... (a többi metódus, mint az initData és a handleSave, változatlan) ...
+    private ContextMenu createContextMenu() {
+        ContextMenu contextMenu = new ContextMenu();
+
+        MenuItem editItem = new MenuItem("Név Szerkesztése");
+        editItem.setOnAction(event -> handleEditSession());
+
+        MenuItem deleteItem = new MenuItem("Kijelöltek Törlése");
+        deleteItem.setOnAction(event -> handleDeleteSessions());
+
+        // A "Szerkesztés" menüpont csak akkor aktív, ha PONTOSAN egy sor van kijelölve
+        editItem.disableProperty().bind(
+            sessionTable.getSelectionModel().selectedItemProperty().isNull()
+            .or(sessionTable.getSelectionModel().getSelectedItems().sizeProperty().isNotEqualTo(1))
+        );
+
+        // A "Törlés" menüpont csak akkor aktív, ha legalább egy sor ki van jelölve
+        deleteItem.disableProperty().bind(
+            sessionTable.getSelectionModel().selectedItemProperty().isNull()
+        );
+
+        contextMenu.getItems().addAll(editItem, new SeparatorMenuItem(), deleteItem);
+        return contextMenu;
+    }
+
+    private void handleEditSession() {
+        TalkSession selectedSession = sessionTable.getSelectionModel().getSelectedItem();
+        if (selectedSession == null) return;
+
+        TextInputDialog dialog = new TextInputDialog(selectedSession.getSessionName());
+        dialog.setTitle("Session Név Szerkesztése");
+        dialog.setHeaderText("Add meg a session új nevét:");
+        dialog.setContentText("Név:");
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(newName -> {
+            if (newName != null && !newName.trim().isEmpty()) {
+                try {
+                    talkSessionService.updateSessionName(selectedSession, newName.trim());
+                    refreshData();
+                } catch (IllegalStateException e) {
+                    dialogFactory.showStyledErrorDialog("Hiba", "Névütközés", e.getMessage());
+                }
+            }
+        });
+    }
+
+    private void handleDeleteSessions() {
+        List<TalkSession> selectedSessions = sessionTable.getSelectionModel().getSelectedItems();
+        if (selectedSessions.isEmpty()) return;
+
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmation.setTitle("Törlés megerősítése");
+        confirmation.setHeaderText("Biztosan törli a kiválasztott " + selectedSessions.size() + " session-t?");
+        confirmation.setContentText("Ez a művelet nem vonható vissza.");
+
+        Optional<ButtonType> result = confirmation.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            talkSessionService.deleteSessions(selectedSessions);
+            refreshData();
+        }
+    }
+
+    // ... (a többi metódus, mint a refreshData, handleNewSession, stb. változatlan)
 }
+
+********************************************************************************************************************************************************
+
+ENUM 
+
+
+/**
+ * Ez az enum definiálja a lehetséges szűrési módokat a session létrehozásakor.
+ */
+public enum EmployeeFilterType {
+    ALL,                // Mindenki a department(ek)ből
+    LEADERS_ONLY,       // Csak a Team Leaderek
+    NON_LEADERS_ONLY    // Mindenki, aki nem Team Leader
+}
+
+********************************************************************************************************************************************
+
+@Service
+public class TalkSessionService {
+
+    private final TalkSessionRepository talkSessionRepository;
+    private final EmployeeRepository employeeRepository;
+
+    public TalkSessionService(TalkSessionRepository talkSessionRepository, EmployeeRepository employeeRepository) {
+        this.talkSessionRepository = talkSessionRepository;
+        this.employeeRepository = employeeRepository;
+    }
+
+    // ... (a többi metódus, mint a findAll, delete, update változatlan)
+
+    /**
+     * JAVÍTOTT METÓDUS: Létrehoz egy új TalkSession-t több department és egy szűrő alapján.
+     * @param sessionName Az új session neve.
+     * @param departmentCodes A kiválasztott részlegkódok listája.
+     * @param filterType A szűrés típusa (ALL, LEADERS_ONLY, NON_LEADERS_ONLY).
+     * @return A létrehozott és elmentett TalkSession objektum.
+     */
+    @Transactional
+    public TalkSession createSession(String sessionName, List<String> departmentCodes, EmployeeFilterType filterType) {
+        if (talkSessionRepository.findBySessionName(sessionName).isPresent()) {
+            throw new IllegalStateException("Már létezik session '" + sessionName + "' néven!");
+        }
+
+        // 1. Lekérjük az összes dolgozót, aki a kiválasztott department-ek valamelyikében van.
+        List<Employee> employeesInDepartments = employeeRepository.findAll().stream()
+                .filter(employee -> departmentCodes.contains(employee.getDepartmentShortCode()))
+                .collect(Collectors.toList());
+
+        // 2. Alkalmazzuk a szerepkör-alapú szűrőt.
+        Set<Employee> sessionEmployees = employeesInDepartments.stream()
+                .filter(employee -> {
+                    boolean isLeader = employee.getPositionTitle() != null &&
+                                       (employee.getPositionTitle().toLowerCase().contains("lead") ||
+                                        employee.getPositionTitle().toLowerCase().contains("leader"));
+                    
+                    switch (filterType) {
+                        case LEADERS_ONLY:
+                            return isLeader;
+                        case NON_LEADERS_ONLY:
+                            return !isLeader;
+                        case ALL:
+                        default:
+                            return true;
+                    }
+                })
+                .collect(Collectors.toSet());
+
+        if (sessionEmployees.isEmpty()) {
+            throw new IllegalStateException("A megadott feltételekkel nem található egyetlen dolgozó sem.");
+        }
+
+        // 3. Létrehozzuk az új session objektumot.
+        TalkSession newSession = TalkSession.builder()
+                .sessionName(sessionName)
+                .creationDate(LocalDate.now())
+                .status("In Progress")
+                .employees(sessionEmployees)
+                .build();
+
+        return talkSessionRepository.save(newSession);
+    }
+}
+**********************************************************************************************************************************
 
