@@ -231,3 +231,219 @@ public class TalkSessionService {
 }
 **********************************************************************************************************************************
 
+<VBox spacing="15.0" styleClass="root" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="hu.bmw.pdt.backend.controller.NewSessionDialogController">
+    <padding>
+        <Insets bottom="20.0" left="25.0" right="25.0" top="20.0" />
+    </padding>
+    <children>
+        <Label text="Új Session Létrehozása" style="-fx-font-size: 22px; -fx-font-weight: bold;">
+            <VBox.margin>
+                <Insets bottom="10.0" />
+            </VBox.margin>
+        </Label>
+        
+        <!-- Session Név Szekció -->
+        <GridPane hgap="10.0">
+            <Label text="Session Név:" />
+            <TextField fx:id="sessionNameField" promptText="pl. Q3 Development Talk" GridPane.columnIndex="1" />
+            <Label fx:id="validationErrorLabel" managed="false" style="-fx-text-fill: #e53935;" visible="false" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+        </GridPane>
+        <Separator/>
+
+        <!-- Department Kezelő Szekció -->
+        <Label text="Részlegek Hozzáadása:" style="-fx-font-weight: bold;" />
+        <HBox spacing="10.0">
+            <children>
+                <ComboBox fx:id="departmentCodeComboBox" editable="true" prefWidth="300.0" promptText="Válassz vagy gépelj..." HBox.hgrow="ALWAYS" />
+                <Button onAction="#handleAddDepartment" text="+ Hozzáad" />
+            </children>
+        </HBox>
+        <ListView fx:id="selectedDepartmentsListView" prefHeight="100.0" />
+        <Button onAction="#handleRemoveDepartment" text="- Kijelölt Eltávolítása" />
+        <Separator/>
+
+        <!-- Szerepkör Szűrő Szekció -->
+        <Label text="Kiket Adjon Hozzá:" style="-fx-font-weight: bold;" />
+        <HBox alignment="CENTER_LEFT" spacing="20.0">
+            <children>
+                <RadioButton fx:id="allEmployeesRadio" text="Mindenkit" />
+                <RadioButton fx:id="leadersOnlyRadio" text="Csak a Leadereket" />
+                <RadioButton fx:id="nonLeadersOnlyRadio" text="Mindenkit, aki NEM Leader" />
+            </children>
+        </HBox>
+
+        <!-- Gombok -->
+        <HBox alignment="CENTER_RIGHT" spacing="10.0">
+             <VBox.margin>
+                <Insets top="15.0" />
+            </VBox.margin>
+            <children>
+                <Button fx:id="createButton" onAction="#handleCreate" text="Létrehozás" />
+                <Button onAction="#handleCancel" text="Mégse" />
+            </children>
+        </HBox>
+    </children>
+</VBox>
+
+**************************************************************************************************************************************************************************************************
+@Component
+public class NewSessionDialogController {
+
+    @FXML private TextField sessionNameField;
+    @FXML private Label validationErrorLabel;
+    @FXML private ComboBox<String> departmentCodeComboBox;
+    @FXML private ListView<String> selectedDepartmentsListView;
+    @FXML private RadioButton allEmployeesRadio;
+    @FXML private RadioButton leadersOnlyRadio;
+    @FXML private RadioButton nonLeadersOnlyRadio;
+    @FXML private Button createButton;
+
+    private final EmployeeService employeeService;
+    private final TalkSessionService talkSessionService;
+    private final ToggleGroup filterToggleGroup = new ToggleGroup();
+    private final ObservableList<String> selectedDepartments = FXCollections.observableArrayList();
+    private boolean confirmed = false;
+
+    public NewSessionDialogController(EmployeeService employeeService, TalkSessionService talkSessionService) {
+        this.employeeService = employeeService;
+        this.talkSessionService = talkSessionService;
+    }
+
+    @FXML
+    private void initialize() {
+        // Department ComboBox beállítása
+        departmentCodeComboBox.setItems(FXCollections.observableArrayList(employeeService.findDistinctDepartmentCodes()));
+        
+        // Kiválasztott departmentek listájának beállítása
+        selectedDepartmentsListView.setItems(selectedDepartments);
+
+        // Szerepkör szűrő RadioButton-ok csoportba foglalása
+        allEmployeesRadio.setToggleGroup(filterToggleGroup);
+        leadersOnlyRadio.setToggleGroup(filterToggleGroup);
+        nonLeadersOnlyRadio.setToggleGroup(filterToggleGroup);
+        allEmployeesRadio.setSelected(true); // Alapértelmezett választás
+
+        // Valós idejű validáció a session névre
+        sessionNameField.textProperty().addListener((obs, oldVal, newVal) -> validateSessionName(newVal));
+    }
+
+    @FXML
+    private void handleAddDepartment() {
+        String selectedDept = departmentCodeComboBox.getValue();
+        if (selectedDept != null && !selectedDept.trim().isEmpty() && !selectedDepartments.contains(selectedDept)) {
+            selectedDepartments.add(selectedDept);
+            departmentCodeComboBox.setValue(null); // Töröljük a ComboBox-ból a választást
+        }
+    }
+
+    @FXML
+    private void handleRemoveDepartment() {
+        String selectedDept = selectedDepartmentsListView.getSelectionModel().getSelectedItem();
+        if (selectedDept != null) {
+            selectedDepartments.remove(selectedDept);
+        }
+    }
+
+    private void validateSessionName(String newName) {
+        if (newName != null && !newName.trim().isEmpty() && talkSessionService.sessionExists(newName.trim())) {
+            showError("Ilyen nevű session már létezik!");
+            createButton.setDisable(true);
+        } else {
+            hideError();
+            createButton.setDisable(false);
+        }
+    }
+
+    private void showError(String message) {
+        validationErrorLabel.setText(message);
+        validationErrorLabel.setVisible(true);
+        validationErrorLabel.setManaged(true);
+    }
+
+    private void hideError() {
+        validationErrorLabel.setVisible(false);
+        validationErrorLabel.setManaged(false);
+    }
+
+    @FXML
+    void handleCreate() {
+        confirmed = true;
+        closeDialog();
+    }
+
+    @FXML
+    void handleCancel() {
+        confirmed = false;
+        closeDialog();
+    }
+
+    private void closeDialog() {
+        ((Stage) createButton.getScene().getWindow()).close();
+    }
+
+    // Getterek, amikkel a DialogFactory lekérdezi az eredményeket
+    public boolean isConfirmed() { return confirmed; }
+    public String getSessionName() { return sessionNameField.getText(); }
+    public List<String> getSelectedDepartments() { return selectedDepartments; }
+    public EmployeeFilterType getFilterType() {
+        if (leadersOnlyRadio.isSelected()) {
+            return EmployeeFilterType.LEADERS_ONLY;
+        } else if (nonLeadersOnlyRadio.isSelected()) {
+            return EmployeeFilterType.NON_LEADERS_ONLY;
+        }
+        return EmployeeFilterType.ALL;
+    }
+}
+
+*****************************************************************************************************************************************************************************
+
+@Component
+public class DialogFactory {
+    // ... (konstruktor és a többi mező)
+
+    // A régi NewSessionResult helyett ezt az újat használjuk
+    public record NewSessionAdvancedResult(String sessionName, List<String> departmentCodes, EmployeeFilterType filterType) {}
+
+    public Optional<NewSessionAdvancedResult> showNewSessionDialog(Node ownerNode) {
+        try {
+            // ... (a dialógus betöltése és megjelenítése változatlan)
+            dialogStage.showAndWait();
+
+            if (controller.isConfirmed()) {
+                String sessionName = controller.getSessionName();
+                List<String> departments = controller.getSelectedDepartments();
+
+                if (sessionName.trim().isEmpty() || departments.isEmpty()) {
+                    showStyledErrorDialog("Hiányzó Adatok", "Minden mező kitöltése kötelező!", "Kérlek, add meg a session nevét és legalább egy részleget.");
+                    return Optional.empty();
+                }
+                
+                return Optional.of(new NewSessionAdvancedResult(sessionName, departments, controller.getFilterType()));
+            }
+        } // ... (catch blokk)
+        return Optional.empty();
+    }
+   
+}
+
+***********************************************************************************************************************************************************************************
+@Component
+public class SessionListController {
+    // ... (a többi mező és a konstruktor változatlan)
+
+    @FXML
+    private void handleNewSession() {
+        // A DialogFactory már az új, "okos" eredményt adja vissza
+        dialogFactory.showNewSessionDialog(newSessionButton).ifPresent(result -> {
+            try {
+                // A service-nek már a komplex adatokat adjuk át
+                talkSessionService.createSession(result.sessionName(), result.departmentCodes(), result.filterType());
+                refreshData();
+            } catch (IllegalStateException e) {
+                dialogFactory.showStyledErrorDialog("Hiba", "Létrehozási Hiba", e.getMessage());
+            }
+        });
+    }
+
+*************************************************************************************************************************************************
+
