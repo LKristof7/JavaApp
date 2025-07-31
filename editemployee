@@ -1,0 +1,293 @@
+package hu.bmw.pdt.backend.controller;
+
+import hu.bmw.pdt.backend.model.Employee;
+import hu.bmw.pdt.backend.service.EmployeeService;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import javafx.util.StringConverter;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+
+@Component
+public class EditEmployeeDialogController {
+
+    // Fejléc mezők
+    @FXML private Label employeeSurnameLabel, employeeFirstnameLabel, localJobTitleLabel, shortCodeLabel, functionalLevelLabel, personalGradeLabel, abCategoryLabel , entryDateLabel, onPositionSinceLabel;
+
+    // SGx Szekció
+    @FXML TitledPane sgxTitledPane;
+    @FXML private RadioButton sgxbReadyRadio, sgxbNotReadyRadio, sgxbNA;
+    @FXML private TextArea notReadyCommentArea;
+    @FXML private TextArea readyCommentArea;
+    @FXML private VBox lastDataPane;
+    @FXML private Label lastABConfirmationLabel, lastPDTStatusLabel, lastTargetPosition;
+    @FXML private Label sgxSuggestionLabel;
+
+    // Development Szekció
+    @FXML private TitledPane personnelDevelopmentTitledPane;
+    @FXML private ComboBox<String> statusCombobox;
+    @FXML private VBox targetFieldsPane;
+    @FXML private ComboBox<String> targetPositionCombobox;
+    @FXML private TextField targetPositionNumberField;
+    @FXML private DatePicker targetDateField;
+    @FXML private TextArea commentArea;
+    @FXML private Label validationErrorLabel;
+
+    @FXML private ToggleButton discussedToggle;
+
+    private final ToggleGroup sgxToggleGroup = new ToggleGroup();
+    private Employee currentEmployee;
+    private boolean confirmed = false;
+    private boolean selectionMade =false;
+    private final EmployeeService employeeService; // Szükséges az auto-complete-hez
+
+    public EditEmployeeDialogController(EmployeeService employeeService) {
+        this.employeeService = employeeService;
+    }
+
+    @FXML
+    private void initialize() {
+        sgxbReadyRadio.setToggleGroup(sgxToggleGroup);
+        sgxbNotReadyRadio.setToggleGroup(sgxToggleGroup);
+        sgxbNA.setToggleGroup(sgxToggleGroup);
+
+        statusCombobox.setItems(FXCollections.observableArrayList("", "Recommendation for Identification", "Candidate in active development", "Ready Candidate", "Process Cancelled"));
+        ObservableList<String> positionTitles= FXCollections.observableArrayList("Area Leader", "Team Leader", "Lead Maintenance Technician Electr.", "Lead Maintenance Technician Mech.",
+                "Lead Process Technician", "Maintenance Technician Electr.", "Maintenance Technician Mech.", "Process Technician", "Lead Associate");
+        FilteredList<String> filterPositions = new FilteredList<>(positionTitles, p->true);
+        targetPositionCombobox.setItems(filterPositions);
+        targetPositionCombobox.setVisibleRowCount(5);
+        targetPositionCombobox.getEditor().textProperty().addListener((obs,oldText,newText)->
+        {
+            if(selectionMade && newText.equals(targetPositionCombobox.getSelectionModel().getSelectedItem())){
+                return;
+            }
+            selectionMade = false;
+
+            Platform.runLater(()-> {
+                if(targetPositionCombobox.getSelectionModel().getSelectedItem() == null ||
+                        !targetPositionCombobox.getSelectionModel().getSelectedItem().equals(newText)){
+                    filterPositions.setPredicate(department ->{
+                        if(newText == null || newText.isEmpty()){
+                            return true;
+                        }
+                        String lowerCaseFilter= newText.toLowerCase();
+                        return department.toLowerCase().contains(lowerCaseFilter);
+                    });
+                    if(!targetPositionCombobox.isShowing()){
+                        targetPositionCombobox.show();
+                    }
+                }
+            });
+        });
+        targetPositionCombobox.getSelectionModel().selectedItemProperty().addListener((obs,oldVal, newVal)->{
+            if(newVal!=null){
+                selectionMade=true;
+                targetPositionCombobox.hide();
+            }
+        });
+
+        final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+
+        statusCombobox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            boolean hasStatus = newVal != null && !newVal.isEmpty();
+            targetFieldsPane.setVisible(hasStatus);
+            targetFieldsPane.setManaged(hasStatus);
+        });
+
+        sgxToggleGroup.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
+            boolean isNotReady = newVal == sgxbNotReadyRadio;
+            notReadyCommentArea.setVisible(isNotReady);
+            notReadyCommentArea.setManaged(isNotReady);
+            boolean isReady= newVal == sgxbReadyRadio;
+            readyCommentArea.setVisible(isReady);
+            readyCommentArea.setManaged(isReady);
+
+        });
+
+        targetDateField.setConverter(new StringConverter<LocalDate>() {
+            @Override
+            public String toString(LocalDate date) {
+                if (date != null) {
+                    return dateFormatter.format(date);
+                } else {
+                    return "";
+                }
+            }
+
+            @Override
+            public LocalDate fromString(String string) {
+                if (string != null && !string.trim().isEmpty()) {
+                    try {
+                        return LocalDate.parse(string, dateFormatter);
+                    } catch (DateTimeParseException e) {
+
+                        try {
+                            return LocalDate.parse(string, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                        } catch (DateTimeParseException e2) {
+                            showError("Érvénytelen dátumformátum: " + string + "\n 'YYYY.MM.DD' ");
+                            targetDateField.getEditor().setStyle("-fx-border-color: #e53935; -fx-border-width: 2px;");
+                            return null;
+                        }
+                    }
+                } else {
+                    return null;
+                }
+            }
+        });
+
+        // Listener, ami visszaállítja a stílust, ha a felhasználó javít a szövegen.
+        targetDateField.getEditor().textProperty().addListener((obs, oldVal, newVal) -> {
+            targetDateField.getEditor().setStyle("");
+        });
+    }
+
+    public void initData(Employee employee) {
+        this.currentEmployee = employee;
+
+        // Fejléc feltöltése
+        employeeSurnameLabel.setText(employee.getLastName());
+        employeeFirstnameLabel.setText(employee.getFirstName());
+        localJobTitleLabel.setText(employee.getPositionTitle());
+        shortCodeLabel.setText(employee.getDepartmentShortCode());
+        functionalLevelLabel.setText(employee.getGlobalFunctionalLevel());
+        personalGradeLabel.setText(employee.getLocalPersonalGrade());
+        onPositionSinceLabel.setText(employee.getOnPositionSince().toString());
+        entryDateLabel.setText(employee.getEntryDate().toString());
+        abCategoryLabel.setText(employee.getAbCategory().equals(" ") ? "N/A": employee.getAbCategory());
+        discussedToggle.setSelected(employee.isDiscussed());
+        personnelDevelopmentTitledPane.setExpanded(false);
+        updateDiscussedButtonText();
+
+        // "Last Data" szekció dinamikus megjelenítése
+        boolean hasLastData = (employee.getLastABConfirmation() != null && !employee.getLastABConfirmation().isEmpty()) ||
+                (employee.getLastPDTStatus() != null && !employee.getLastPDTStatus().isEmpty());
+        lastDataPane.setVisible(hasLastData);
+        lastDataPane.setManaged(hasLastData);
+        if (hasLastData) {
+            lastABConfirmationLabel.setText(employee.getLastABConfirmation());
+            lastPDTStatusLabel.setText(employee.getLastPDTStatus());
+            lastTargetPosition.setText(employee.getTargetPosition());
+            statusCombobox.setValue(employee.getLastPDTStatus());
+        }
+
+        if("B".equalsIgnoreCase(employee.getAbCategory())){
+            sgxTitledPane.setExpanded(false);
+        }
+        if(employee.isDiscussed()){
+            sgxTitledPane.setExpanded(false);
+            personnelDevelopmentTitledPane.setExpanded(false);
+        }
+
+        // SGx RadioButton-ok beállítása
+        if (employee.getCurrentABConfirmation().toLowerCase().startsWith("yes") || employee.getLastABConfirmation().toLowerCase().startsWith("yes")) {
+            sgxbReadyRadio.setSelected(true);
+        } else if (employee.getCurrentABConfirmation() != null && employee.getCurrentABConfirmation().toLowerCase().startsWith("no")) {
+            sgxbNotReadyRadio.setSelected(true);
+        } else {
+            sgxbNA.setSelected(true);
+        }
+        sgxSuggestionLabel.setVisible(false);
+        sgxSuggestionLabel.setManaged(false);
+        if(employee.getOnPositionSince() != null && "A".equalsIgnoreCase(employee.getAbCategory())){
+            long monthSinceEntry= ChronoUnit.MONTHS.between(employee.getOnPositionSince(), LocalDate.now());
+            if(monthSinceEntry>=9){
+                sgxSuggestionLabel.setText("Suggestion: The Employee SGxB Ready. Months since entry: "+monthSinceEntry);
+                sgxSuggestionLabel.setVisible(true);
+                sgxSuggestionLabel.setManaged(true);
+            }
+        }
+
+        // Development mezők feltöltése
+        statusCombobox.setValue(employee.getCurrentPDTStatus());
+        targetPositionNumberField.setText(employee.getJobCardNumber());
+        targetDateField.setValue(employee.getStartOfDevelopment());
+        commentArea.setText(employee.getCurrentPDTComment());
+        hideValidationError();
+
+        targetPositionCombobox.getEditor().setText(employee.getTargetPosition());
+
+        discussedToggle.selectedProperty().addListener((obs, oldVal, newVal)->{
+            updateDiscussedButtonText();
+        });
+    }
+
+
+    private void updateDiscussedButtonText() {
+        if(discussedToggle.isSelected()){
+            discussedToggle.setText("✔ Discussed");
+            discussedToggle.setStyle("-fx-base: #2a4f3c");
+        }else{
+            discussedToggle.setText("Mark as Discussed");
+            discussedToggle.setStyle("-fx-base: #f78e60");
+        }
+    }
+
+    @FXML
+    private void handleSave() {
+        if (targetFieldsPane.isVisible()) {
+            if (targetPositionCombobox.getEditor().getText().trim().isEmpty() || targetDateField.getValue() == null) {
+                showValidationError("A csillaggal jelölt mezők kitöltése kötelező!");
+                return;
+            }
+
+        }
+        hideValidationError();
+
+        RadioButton selectedSgx = (RadioButton) sgxToggleGroup.getSelectedToggle();
+        if (selectedSgx == sgxbReadyRadio) {
+            currentEmployee.setCurrentABConfirmation("Yes " +readyCommentArea.getText());
+        } else if (selectedSgx == sgxbNotReadyRadio) {
+            currentEmployee.setCurrentABConfirmation("No " + notReadyCommentArea.getText());
+        } else {
+            currentEmployee.setCurrentABConfirmation("N/A");
+        }
+
+        boolean isSgxSelected = selectedSgx != sgxbNA;
+        boolean isDevStatusSelected = statusCombobox.getValue() != null && !statusCombobox.getValue().isEmpty();
+        currentEmployee.setDiscussed(discussedToggle.isSelected());
+
+        currentEmployee.setCurrentPDTStatus(statusCombobox.getValue());
+        currentEmployee.setTargetPosition(targetPositionCombobox.getEditor().getText());
+        currentEmployee.setJobCardNumber(targetPositionNumberField.getText());
+        currentEmployee.setStartOfDevelopment(targetDateField.getValue());
+        currentEmployee.setCurrentPDTComment(commentArea.getText());
+
+        confirmed = true;
+        closeDialog();
+    }
+
+    private void showError(String message) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("Validációs Hiba");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    @FXML
+    private void handleCancel() { closeDialog(); }
+    private void closeDialog() { ((Stage) employeeSurnameLabel.getScene().getWindow()).close(); }
+    public boolean isConfirmed() { return confirmed; }
+
+    private void hideValidationError() {
+        validationErrorLabel.setVisible(false);
+        validationErrorLabel.setManaged(false);
+    }
+    private  void showValidationError(String s){
+        validationErrorLabel.setText(s);
+        validationErrorLabel.setVisible(true);
+        validationErrorLabel.setManaged(true);
+    }
+}
